@@ -3,9 +3,9 @@ const MS = {
   started: false
 };
 
-const width = 20;
-const height = 12;
-const mineCount = 50;
+const width = 30;
+const height = 16;
+const mineCount = 99;
 
 function reset() {
   MS.matrix.splice(0, MS.matrix.length);
