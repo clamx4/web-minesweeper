@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="stylesheet" type="text/css" href="css/index.css">
+<title>mine sweeper</title>
+</head>
+<body>
+<div>
+<button onclick="reset()">reset</button>
+</div>
+<div>
+<div id="app">
+
+<div id="grid">
+  <div v-for="item in minesweeper.matrix" v-on:click="click(item.x, item.y)" class="cell">
+  	<!-- <div v-on:click="click(item)"> -->
+	  	<div v-if="item.isMine">M</div>
+	  	<div v-if="item.stepped && item.flagged">F</div>
+	  	<div v-if="item.stepped && !item.isMine">{{ mineAroundCount(item.x, item.y) }}</div>
+  	<!-- </div> -->
+  </div>
+</div>
+
+</div>
+</div>
+<script src="https://unpkg.com/vue/dist/vue.js"></script>
+<script src="js/minesweeper.js"></script>
+</body>
+</html>
