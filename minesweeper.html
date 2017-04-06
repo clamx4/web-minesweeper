@@ -10,17 +10,19 @@
 </div>
 <div>
 <div id="app">
-
-<div id="grid">
-  <div v-for="item in minesweeper.matrix" v-on:click="click(item.x, item.y)" class="cell">
-  	<!-- <div v-on:click="click(item)"> -->
-	  	<div v-if="item.isMine">M</div>
-	  	<div v-if="item.stepped && item.flagged">F</div>
-	  	<div v-if="item.stepped && !item.isMine">{{ mineAroundCount(item.x, item.y) }}</div>
-  	<!-- </div> -->
-  </div>
-</div>
-
+    <div id="grid">
+        <div v-for="item in minesweeper.matrix" v-on:click="click(item.x, item.y)" class="cell">
+            <!-- <div v-on:click="click(item)"> -->
+            <div v-if="item.isMine">M</div>
+            <div v-if="item.stepped && item.flagged">F</div>
+            <div v-if="item.stepped && !item.isMine">{{ mineAroundCount(item.x, item.y) }}</div>
+            <!-- </div> -->
+        </div>
+    </div>
+    <div class="bg-l"></div>
+    <div class="bg-b"></div>
+    <div class="bg-r"></div>
+    <div class="bg-t"></div>
 </div>
 </div>
 <script src="https://unpkg.com/vue/dist/vue.js"></script>
