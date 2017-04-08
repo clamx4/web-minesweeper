@@ -7,6 +7,11 @@ const width = 30;
 const height = 16;
 const mineCount = 99;
 
+const cell_bound = 40;
+const cell_size = 36;
+const cell_margin = parseInt((cell_bound - cell_size) / 2);
+
+
 function reset() {
   MS.matrix.splice(0, MS.matrix.length);
   for (let i = 0; i < height; i++) {
@@ -117,6 +122,43 @@ let app = new Vue({
         initMine(x, y);
       }
       step(x, y);
+    }, calcCellStyle: function (item) {
+      var x = item.x;
+      var y = item.y;
+      var index = x + y * 30;
+
+      var pos_x = parseInt(index % 25);
+      var pos_y = parseInt(index / 25);
+      pos_x = pos_x * cell_bound + cell_margin;
+      pos_y = pos_y * cell_bound + cell_margin;
+
+      var ret = `background-position: -${pos_x}px -${pos_y}px;`;
+      return ret;
+    }, calcCellBottomStyle: function(item) {
+      var x = item.x;
+      var y = item.y;
+      var index = x + y * 30;
+
+      var pos_x = parseInt(index % 25);
+      var pos_y = parseInt(index / 25);
+      pos_x = pos_x * cell_bound + cell_margin + 1000;
+      pos_y = pos_y * cell_bound + cell_margin;
+
+      var ret = `background-position: -${pos_x}px -${pos_y}px;`;
+      return ret;
+    }, calcGridStyle: function() {
+      return `width: ${width * cell_size}px; height: ${height * cell_size}px;`
+    }, calcClass: function(item) {
+      return {};
+    }, calcAttachmentClass: function(item) {
+      var ret = {};
+      ret['cell-content'] = item.stepped;
+      if(item.isMine) {
+        ret['cell-mine'] = true;
+      } else {
+        ret['cell-' + getMineAroundCount(item.x, item.y)] = true;
+      }
+      return ret;
     }
   }
 });
@@ -124,3 +166,4 @@ let app = new Vue({
 (function (){
   reset()
 })();
+

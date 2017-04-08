@@ -2,30 +2,39 @@
 <html>
 <head>
 <link rel="stylesheet" type="text/css" href="css/index.css">
-<title>mine sweeper</title>
+<title>Mine Sweeper</title>
 </head>
 <body>
-<div>
-<button onclick="reset()">reset</button>
-</div>
-<div>
-<div id="app">
-    <div id="grid">
-        <div v-for="item in minesweeper.matrix" v-on:click="click(item.x, item.y)" class="cell">
-            <!-- <div v-on:click="click(item)"> -->
-            <div v-if="item.isMine">M</div>
-            <div v-if="item.stepped && item.flagged">F</div>
-            <div v-if="item.stepped && !item.isMine">{{ mineAroundCount(item.x, item.y) }}</div>
-            <!-- </div> -->
-        </div>
+    <div>
+        <button onclick="reset()">reset</button>
     </div>
-    <div class="bg-l"></div>
-    <div class="bg-b"></div>
-    <div class="bg-r"></div>
-    <div class="bg-t"></div>
-</div>
-</div>
-<script src="https://unpkg.com/vue/dist/vue.js"></script>
-<script src="js/minesweeper.js"></script>
+    <div id="app">
+        <div id="grid" v-bind:style="calcGridStyle()">
+            <div v-for="item in minesweeper.matrix" v-on:click="click(item.x, item.y)" class="cell">
+                <div v-bind:class="calcAttachmentClass(item)"></div>
+                <div class="cell-cover" v-bind:style="calcCellStyle(item)" v-bind:class="{'cell-uncovered': item.stepped
+                }"></div>
+                <div class="cell-bottom" v-bind:style="calcCellBottomStyle(item)"></div>
+                <div v-if="!item.stepped && item.flagged" class="cell-flag"></div>
+            </div>
+        </div>
+        <div class="border border-ul"></div>
+        <div class="border border-uc"></div>
+        <div class="border border-ur"></div>
+        <div class="border border-lu"></div>
+        <div class="border border-lc"></div>
+        <div class="border border-lb"></div>
+        <div class="border border-bl"></div>
+        <div class="border border-bc"></div>
+        <div class="border border-br"></div>
+        <div class="border border-rb"></div>
+        <div class="border border-rc"></div>
+        <div class="border border-ru"></div>
+        <div class="count-time">099</div>
+        <div class="count-mine">099</div>
+    </div>
+
+    <script src="js/vue.js"></script>
+    <script src="js/minesweeper.js"></script>
 </body>
 </html>
