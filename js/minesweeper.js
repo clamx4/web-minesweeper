@@ -64,6 +64,10 @@ function step(x, y) {
   let cell = MS.matrix[index];
   if (cell && !cell.stepped) {
     cell.stepped = true;
+    if (cell.isMine === true) {
+      //do with lost logic
+      return;
+    }
     if (getMineAroundCount(x, y) === 0) {
       step(x - 1, y - 1);
       step(x - 1, y    );
@@ -74,6 +78,7 @@ function step(x, y) {
       step(x + 1, y    );
       step(x + 1, y + 1);
     }
+    //judge win & do with win logic
   }
 }
 
