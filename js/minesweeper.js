@@ -14,19 +14,11 @@ const cell_margin = parseInt((cell_bound - cell_size) / 2);
 
 function reset() {
   MS.matrix.splice(0, MS.matrix.length);
-  for (let i = 0; i < height; i++) {
-    let row = [];
-    for (let j = 0; j < width; j++) {
-      let cell = { stepped: false, flagged: false };
-      row.push(cell);
+  for (let j = 0; j < height; j++) {
+    for (let i = 0; i < width; i++) {
+      let cell = { stepped: false, flaged: false, isMine: false, x: i, y: j };
+      MS.matrix.push(cell);
     }
-    MS.matrix.push(row);
-  }
-
-  MS.matrix.splice(0, MS.matrix.length);
-  for (let i = 0; i < height * width; i++) {
-    let cell = { stepped: false, flaged: false, isMine: false, x: i % width, y: Math.floor(i / width) };
-    MS.matrix.push(cell);
   }
   MS.started = false;
 }
@@ -150,6 +142,9 @@ let app = new Vue({
       pos_y = pos_y * cell_bound + cell_margin;
 
       var ret = `background-position: -${pos_x}px -${pos_y}px;`;
+      if (item.stepped === true && item.isMine === true) {
+        ret += ';background: #ff0000';
+      }
       return ret;
     }, calcGridStyle: function() {
       return `width: ${width * cell_size}px; height: ${height * cell_size}px;`
