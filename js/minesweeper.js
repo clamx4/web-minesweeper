@@ -1,16 +1,13 @@
 const MS = {
   matrix: [],
-  started: false
+  started: false,
+  time: 0,
+  mines: 0
 };
 
 const width = 30;
 const height = 16;
 const mineCount = 99;
-
-const cell_bound = 40;
-const cell_size = 36;
-const cell_margin = parseInt((cell_bound - cell_size) / 2);
-
 
 function reset() {
   MS.matrix.splice(0, MS.matrix.length);
@@ -20,6 +17,7 @@ function reset() {
       MS.matrix.push(cell);
     }
   }
+  MS.mines = mineCount;
   MS.started = false;
 }
 
@@ -46,7 +44,8 @@ function randomInt(excluesiveMax) {
   return Math.floor(Math.random() * excluesiveMax);
 }
 
-/* x, y start from 0
+/* 
+  x, y start from 0
 */
 function step(x, y) {
   if (x < 0 || x >= width || y < 0 || y >= height) {
@@ -107,10 +106,16 @@ let app = new Vue({
   methods: {
     start: function() {
       this.minesweeper.started = true;
+      this.minesweeper.startTime = Date.now();
+      this.minesweeper.timerId = setInterval(()=>{
+        var tm = parseInt((Date.now() - this.minesweeper.startTime) / 1000);
+        if(tm > 999) {
+          tm = 999;
+        }
+        this.minesweeper.time = tm;
+      }, 100);
     },
     mineAroundCount: function(x, y) {
-      // let x = item.x;
-      // let y = item.y;
       return getMineAroundCount(x, y);
     }, 
     click: function(x, y) {
@@ -126,8 +131,8 @@ let app = new Vue({
 
       var pos_x = parseInt(index % 25);
       var pos_y = parseInt(index / 25);
-      pos_x = pos_x * cell_bound + cell_margin;
-      pos_y = pos_y * cell_bound + cell_margin;
+      pos_x = pos_x * 40 + 3;
+      pos_y = pos_y * 40 + 3;
 
       var ret = `background-position: -${pos_x}px -${pos_y}px;`;
       return ret;
@@ -138,23 +143,22 @@ let app = new Vue({
 
       var pos_x = parseInt(index % 25);
       var pos_y = parseInt(index / 25);
-      pos_x = pos_x * cell_bound + cell_margin + 1000;
-      pos_y = pos_y * cell_bound + cell_margin;
+      pos_x = pos_x * 40 + 3 + 1000;
+      pos_y = pos_y * 40 + 3;
 
       var ret = `background-position: -${pos_x}px -${pos_y}px;`;
-      if (item.stepped === true && item.isMine === true) {
-        ret += ';background: #ff0000';
-      }
       return ret;
     }, calcGridStyle: function() {
-      return `width: ${width * cell_size}px; height: ${height * cell_size}px;`
-    }, calcClass: function(item) {
-      return {};
+      return `width: ${width * 36}px; height: ${height * 36}px;`
     }, calcAttachmentClass: function(item) {
       var ret = {};
       ret['cell-content'] = item.stepped;
       if(item.isMine) {
-        ret['cell-mine'] = true;
+        if (item.stepped) {
+          ret['cell-mine-stepped'] = true;
+        } else {
+          ret['cell-mine'] = true;
+        }
       } else {
         ret['cell-' + getMineAroundCount(item.x, item.y)] = true;
       }
@@ -166,4 +170,3 @@ let app = new Vue({
 (function (){
   reset()
 })();
-
