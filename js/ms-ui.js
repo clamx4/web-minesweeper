@@ -7,10 +7,10 @@
 		Object.defineProperty(this, 'row', {value: row});
 		Object.defineProperty(this, 'col', {value: col});
 
-		this.covered = Math.random() > 0.5;
-		this.content = Math.random() > 0.5? parseInt(Math.random() * 8): (Math.random() < 0.1? 'mine-red': 'mine');
-		this.flagged =  Math.random() > 0.5;
-		this.pushed =  false;
+		this.covered = true
+		this.content = 0;
+		this.flagged = false;
+		this.pushed = false
 		this.fadeTime = 0;
 		this.shineTime = 0;
 		this.bombTime = 0;
@@ -41,10 +41,19 @@
 	Cell.prototype.bomb = function(delta) {
 		this.bombTime = (delta || 0) + Date.now();
 	}
+	Cell.prototype.reset = function() {
+		this.covered = true;
+		this.content = 0;
+		this.flagged = false;
+		this.pushed = false;
+		this.fadeTime = 0;
+		this.shineTime = 0;
+		this.bombTime = 0;
+	}
 
 	function Field(w, h, canvas) {
 		var matrix = [];
-		Object.defineProperty(this, 'matrix', {'get':()=>matrix});
+		Object.defineProperty(this, 'matrix', {'get':function(){return matrix;}});
 		for(var row = 0; row < h; row++) {
 			var rowx = (matrix[row] = []);
 			for(var col = 0; col < w; col++) {
@@ -59,8 +68,9 @@
 		this.startTime = -1;
 		this.scanTime = 0;
 
-		this.onLeft = null;
-		this.onRight = null;
+		this.onleft = null;
+		this.onright = null;
+		this.pauseTime = 0;
 		var self = this;
 
 		var isDown = 0;
@@ -75,7 +85,7 @@
 		}
 		function pushDown(px, py, adj) {
 			var x = parseInt((px - borderL) / 36), y = parseInt((py - borderT) / 36);
-			if(x < 0 || x >= w || y < 0 || y >= h) {
+			if(px < borderL || x < 0 || x >= w || py < borderT || y < 0 || y >= h) {
 				return;
 			}
 			downCenter = matrix[y][x];
@@ -97,34 +107,67 @@
 				}
 			}
 		}
-		canvas.addEventListener('mousedown', function(e) {
-			if(e.button == 0) {
-				isDown |= 1;
-			} else if (e.button == 2) {
-				isDown |= 2;
+		function getCell(e) {
+			var cell;
+			if(e.offsetY >= borderT && e.offsetX >= borderL) {
+				var row = parseInt((e.offsetY - borderT) / 36), col = parseInt((e.offsetX - borderL) / 36);
+				if(row < h && col < w) {
+					cell = matrix[row][col];
+				}
 			}
-			if(isDown == 1) {
-				pushDown(e.offsetX, e.offsetY);
-			} else if (isDown == 3) {
+			return cell;
+		}
+		canvas.addEventListener('mousedown', function(e) {
+			var cell = getCell(e);
+			if(!cell || self.pauseTime) return;
+			if(e.button === 0) {
+				isDown |= 1;
+			} else if (e.button === 2) {
+				isDown |= 2;
+				if(isDown === 2) {
+					if(typeof self.onright === 'function' && cell) {
+						self.onright(cell);
+					}
+				}
+			}
+
+			if(isDown === 1) {
+				pushDown(e.offsetX, e.offsetY, e.shiftKey && !cell.covered);
+			} else if (isDown === 3) {
 				pushDown(e.offsetX, e.offsetY, true);
 			}
 		});
 		canvas.addEventListener('mousemove', function(e) {
-			if(isDown == 1) {
+			var cell = getCell(e);
+			if(!cell || self.pauseTime) {
+				self.hoverRow = self.hoverCol = -1;
+				return;
+			}
+			self.hoverRow = cell.row; self.hoverCol = cell.col;
+
+			if(isDown === 1) {
 				clearDown();
-				pushDown(e.offsetX, e.offsetY);
-			} else if (isDown == 3) {
+				pushDown(e.offsetX, e.offsetY, e.shiftKey && !cell.covered);
+			} else if (isDown === 3) {
 				clearDown();
 				pushDown(e.offsetX, e.offsetY, true);
 			}
 		});
 		canvas.addEventListener('mouseup', function(e) {
-			if(e.button == 0) {
-				if(typeof self.onLeft == 'function') { self.onLeft(downCenter, downList.slice()); }
+			var cell = getCell(e);
+			if(!cell || self.pauseTime) return;
+			if(e.button === 0) {
+				if(e.shiftKey && cell.covered) {
+					if(typeof self.onright === 'function') {
+						self.onright(cell);
+					}
+				} else {
+					if(typeof self.onleft === 'function') { self.onleft(downCenter, downList.slice()); }
+				}
 				isDown &= ~1;
-			} else if (e.button == 2) {
-				if(isDown != 3) {
-					if(typeof self.onRight == 'function') { self.onRight(matrix[parseInt((e.offsetY - borderT) / 36)][parseInt((e.offsetX - borderL) / 36)]); }
+			} else if (e.button === 2) {
+				if(isDown === 3) {
+					if(typeof self.onleft === 'function') { self.onleft(downCenter, downList.slice()); }
 				}
 				isDown &= ~2;
 			}
@@ -138,45 +181,53 @@
 		});
 	}
 	Field.prototype.onReady = function(listener) {
-		this.readyListener = listener;
+		this.onready = listener;
 	};
-	Field.prototype.ready = function() {
-		if(this.readyListener) {
-			this.readyListener();
-		}
-	}
+	Field.prototype.onLeft = function(listener) {
+		this.onleft = listener;
+	};
+	Field.prototype.onRight = function(listener) {
+		this.onright = listener;
+	};
 	Field.prototype.resetContent = function() {
-		for(var row = 0; row < h; row++) {
+		for(var row = 0; row < this.h; row++) {
 			var rowx = this.matrix[row];
-			for(var col = 0; col < w; col++) {
-				rowx[col] = {'row': row, 'col': col};
+			for(var col = 0; col < this.w; col++) {
+				rowx[col].reset();
 			}
 		}
+	};
+	Field.prototype.stopTime = function() {
+		this.pauseTime = Date.now();
 	}
-
 	Field.prototype.resetTime = function(delta) {
 		this.startTime = (delta || 0) + Date.now();
-	}
+		this.pauseTime = undefined;
+	};
 	Field.prototype.setMineCnt = function(delta, init) {
 		this.mines = delta + (init || this.mines);
-	}
+	};
 	Field.prototype.startScan = function() {
-		this.startScan = Date.now();
-	}
-	Field.prototype.init = function() {
+		this.scanTime = Date.now();
+	};
+	Field.prototype.initAnim = function() {
 		for (var row = 0; row < this.h; row++) {
 			for(var col = 0; col < this.w; col ++) {
 				this.matrix[row][col].cover(600 * Math.random());
 			}
 		}
-	}
+	};
+	Field.prototype.dispose = function() {
+		this.disposed = true;
+	};
 
-	document.addEventListener('DOMContentLoaded', (function(canvasSelector, imgs, w, h) {
+	function newField(canvasSelector, imgs, w, h) {
+		var totalScanTime = h * 200;
 		var canvas = $(canvasSelector);
 		var bg = document.createElement('canvas');
 		var g = canvas.getContext('2d');
 		var width = w * cellSize + borderW, height = h * cellSize + borderH;
-		var field = (window.field = new Field(w, h, canvas));
+		var field = new Field(w, h, canvas);
 		var drawStatus;
 		
 		canvas.setAttribute('width', width);
@@ -200,7 +251,7 @@
 				}
 			}
 
-			var str = `Loading images: ${ready}/${cnt}`;
+			var str = 'Loading images: ' + ready + '/' + cnt;
 			var len = g.measureText(str).width;
 
 			g.fillStyle = '#000';
@@ -224,7 +275,7 @@
 			g.subImage(imgs.border, 229, 15, 252, 62, width - 252, 0);
 			g.subImage(imgs.border, 22, 15, 196, 62, 0, 0);
 			if(width - 252 - 196 > 0) {
-				g.drawImage(imgs.repeat_u, 0, 0, 1, 62, 196, 0, width - 252 - 196, 62);
+				g.drawImage(imgs.repeat_u, 0, 0, 1, 60, 196, 0, width - 252 - 196, 60);
 			}
 			g.subImage(imgs.border, 22, 78, 60, 50, 0, 62);
 			g.subImage(imgs.border, 22, 135, 60, 346, 0, height - 346);
@@ -277,7 +328,7 @@
 
 			// cache it
 			bg.getContext('2d').drawImage(canvas, 0, 0);
-			field.ready();
+			if(typeof field.onready === 'function') field.onready();
 			requestAnimationFrame(draw);
 		}
 		function draw() {
@@ -287,7 +338,7 @@
 			// draw status
 			var tmEllipsed = 999;
 			if(field.startTime > 0) {
-				tmEllipsed = parseInt((Date.now() - field.startTime) / 1000);
+				tmEllipsed = parseInt(((field.pauseTime || Date.now()) - field.startTime) / 1000);
 			}
 			drawStatus(tmEllipsed, field.mines);
 
@@ -307,12 +358,15 @@
 					pos_y = pos_y * 40 + 2;
 					var targetX = borderL + x * 36, targetY = borderT + y * 36;
 					if(!e.covered) {
-						if(col > 0 && (ele = field.matrix[row][col - 1]).covered && !ele.pushed) {
+						// shadow
+						if(col <= 0 || (ele = field.matrix[row][col - 1]).covered && !ele.pushed) {
 							g.subImage(imgs.full, 2003, 323, 4, 35, targetX + 1, targetY + 1);
 						}
-						if(row > 0 && (ele = field.matrix[row - 1][col]).covered && !ele.pushed) {
+						if(row <= 0 || (ele = field.matrix[row - 1][col]).covered && !ele.pushed) {
 							g.subImage(imgs.full, 963, 1123, 35, 4, targetX + 1, targetY + 1);
 						}
+
+						// content
 						if(e.content > 0 && e.content <= 8) {
 							g.subImage(imgs.full, 1999, 1 + 40 * (e.content - 1), 36, 36, targetX - 2, targetY - 1);
 						} else if (e.content == 'mine') {
@@ -330,14 +384,15 @@
 					} else {
 						// if pushed, do nothing
 						if(e.pushed) {
-							if(col > 0 && (ele = field.matrix[row][col - 1]).covered && !ele.pushed) {
+							if(col <= 0 || (ele = field.matrix[row][col - 1]).covered && !ele.pushed) {
 								g.subImage(imgs.full, 2003, 323, 4, 35, targetX + 1, targetY + 1);
 							}
-							if(row > 0 && (ele = field.matrix[row - 1][col]).covered && !ele.pushed) {
+							if(row <= 0 || (ele = field.matrix[row - 1][col]).covered && !ele.pushed) {
 								g.subImage(imgs.full, 963, 1123, 35, 4, targetX + 1, targetY + 1);
 							}
 							continue;
 						}
+
 						// fade in of cover
 						if(currTm - e.fadeTime < 200) {
 							g.globalAlpha = Math.max((currTm - e.fadeTime) / 200, 0);
@@ -346,26 +401,36 @@
 						} else {
 							g.subImage(imgs.full, pos_x, pos_y, 36, 36, targetX, targetY);
 						}
-						if(e.flagged) {
-							g.subImage(imgs.full, 801, 1121, 36, 36, targetX, targetY);
+						// hover
+						if(e.row === field.hoverRow && e.col == field.hoverCol) {
+							g.subImage(imgs.full, 881, 1121, 36, 36, targetX, targetY);
 						}
+						
 						// fade of shining animation
-						if(currTm - e.shineTime < 2000) {
-							index = parseInt(38 * (currTm - e.shineTime) / 2000);
-							x = index % 7; y = parseInt(index / 7);
-							g.subImage(imgs.shine, x * 104, y * 304, 104, 309, targetX - 36, targetY - 138);
+						if(e.shineTime > 0 && currTm - e.shineTime > 0) {
+							g.subImage(imgs.full, 1880, 1120, 36, 36, targetX, targetY);
+							if(currTm - e.shineTime < 2000) {
+								index = parseInt(38 * (currTm - e.shineTime) / 2000);
+								x = index % 7; y = parseInt(index / 7);
+								g.subImage(imgs.shine, x * 104, y * 304, 104, 309, targetX - 36, targetY - 138);
+							}
 						}
 					}
+					// flag
+					if(e.flagged) {
+						g.subImage(imgs.full, 801, 1121, 36, 36, targetX, targetY);
+					}
+					// bomb animation
 					if(currTm - e.bombTime < 2000) {
-						index = parseInt(21 * (currTm - e.bombTime) / 2000);
+						index = Math.max(parseInt(21 * (currTm - e.bombTime) / 2000), 0);
 						x = index % 3; y = parseInt(index / 3);
 						g.subImage(imgs.bomb, x * 118, y * 118, 120, 120, targetX - 40, targetY - 40);
 					}
 				}
 			}
 
-			if(currTm - field.startScan < 5000 && currTm - field.startScan > 0) {
-				var k =  1 - (currTm - field.startScan) / 5000;
+			if(currTm - field.scanTime < totalScanTime && currTm - field.scanTime > 0) {
+				var k =  1 - (currTm - field.scanTime) / totalScanTime;
 				g.save();
 				g.beginPath();
 				g.lineTo(borderL, borderT);
@@ -380,60 +445,116 @@
 				g.restore();
 			}
 
-			requestAnimationFrame(draw);
+			if(!field.disposed) requestAnimationFrame(draw);
 		}
 
 		// start logic here
 		waitForImages();
-	}).bind(window, '#canvas', {
-		border:$('#im_border'),
-		full:$('#im_full'),
-		ic_clock:$('#im_ic_clock'),
-		ic_mine:$('#im_ic_mine'),
-		ic_board:$('#im_ic_board'),
-		repeat_b:$('#im_repeat_b'),
-		repeat_l:$('#im_repeat_l'),
-		repeat_r:$('#im_repeat_r'),
-		repeat_u:$('#im_repeat_u'),
-		shine:$('#im_shine'),
-		bomb:$('#im_bomb')
-	}, 30, 16));
-})();
 
-/* how to use */
+		return field;
+	};
+	window.createField = function(w, h, id, imgs) {
+		w = w || 30;
+		h = h || 16;
+		id = id || 'canvas';
+		imgs = imgs || ({
+			border:$('#im_border'),
+			full:$('#im_full'),
+			ic_clock:$('#im_ic_clock'),
+			ic_mine:$('#im_ic_mine'),
+			ic_board:$('#im_ic_board'),
+			repeat_b:$('#im_repeat_b'),
+			repeat_l:$('#im_repeat_l'),
+			repeat_r:$('#im_repeat_r'),
+			repeat_u:$('#im_repeat_u'),
+			shine:$('#im_shine'),
+			bomb:$('#im_bomb')
+		});
+		return newField(id, imgs, w, h);
+	}
 
-document.addEventListener('DOMContentLoaded', function(){
-	field.onReady(function() {
-		field.init();
-		field.resetTime();
-		field.setMineCnt(0, 0);
-	})
-})
-setTimeout(()=>{
-	field.onLeft = function(center, arr) {
-		for(var i = 0; i < arr.length; i++) {
-			var e = field.matrix[arr[i][0]][arr[i][1]];
-			if(e.covered) {
-				e.uncover(-200);
+
+	window.createBorder = function(element) {
+		if(typeof element === 'string') {
+			element = $(element);
+		}
+		var imf = $('#im_frame');
+		if(!imf.complete) {
+			setTimeout(createBorder.bind(this, element), 10);
+			return;
+		}
+		function colorToHexStr(data, x, y, width) {
+			function toHex(val) {
+				var str = val.toString(16);
+				if(str.length <= 1) {
+					str = '0' + str;
+				}
+				return str;
+			}
+			var pos = (x + y * width) * 4;
+			return '#' + toHex(data[pos]) + toHex(data[pos + 1]) + toHex(data[pos + 2]);
+		}
+		function linearGradientH(img, srcx, srcy, h, gdest, destx, desty, destw) {
+			var canvas = document.createElement('canvas');
+			canvas.width = 2; canvas.height = h;
+			var g = canvas.getContext('2d');
+			g.drawImage(img, srcx, srcy, 2, h, 0, 0, 2, h);
+			var imgdata = g.getImageData(0, 0, 2, h).data;
+			for(var i = 0; i < h; i++) {
+				var gradient = g.createLinearGradient(0, 0, destw, 0);
+				gradient.addColorStop(0, colorToHexStr(imgdata, 0, i, 2));
+				gradient.addColorStop(1, colorToHexStr(imgdata, 1, i, 2));
+				gdest.fillStyle = gradient;
+				gdest.fillRect(destx, desty + i, destw, 1);
 			}
 		}
-	}
-	field.onRight = function(center, arr) {
-		if(center.flagged) {
-			center.unflag();
-		} else {
-			center.flag();
+		function linearGradientV(img, srcx, srcy, w, gdest, destx, desty, desth) {
+			var canvas = document.createElement('canvas');
+			canvas.width = w; canvas.height = 2;
+			var g = canvas.getContext('2d');
+			g.drawImage(img, srcx, srcy, w, 2, 0, 0, w, 2);
+			var imgdata = g.getImageData(0, 0, w, 2).data;
+			for(var i = 0; i < w; i++) {
+				var gradient = g.createLinearGradient(0, 0, 0, desth);
+				gradient.addColorStop(0, colorToHexStr(imgdata, i, 0, w));
+				gradient.addColorStop(1, colorToHexStr(imgdata, i, 1, w));
+				gdest.fillStyle = gradient;
+				gdest.fillRect(destx + i, desty, 1, desth);
+			}
 		}
-	}
-}, 2000);
+		
+		
+		var w = element.offsetWidth, h = element.offsetHeight;
+		var width = w + 21, height = h + 19;
+		var canvas = document.createElement('canvas');
+		canvas.setAttribute('width', width);
+		canvas.setAttribute('height', height);
+		canvas.style.cssText = 'pointer-events:none; position:absolute;left:-10px; top:-10px; width:' + 'width' + 'px; height:' + 'height' + 'px; z-index:3;';
+		var g = canvas.getContext('2d');
+		g.subImage = function(img, sx, sy, w, h, dx, dy){g.drawImage(img, sx, sy,w,h,dx,dy,w,h);}
+		g.subImage(imf, 0, 0, 334, 51, 0, 0);
+		g.subImage(imf, 0, 56, 75, 22, 0, height - 22);
+		g.subImage(imf, 79, 56, 111, 22, width - 111, height - 22);
+		g.subImage(imf, 192, 53, 255, 51, width - 255, 0);
 
-setTimeout(()=>{
-	field.matrix[0][0].shine();
-	for(var i = 0; i < 30; i++) {
-		field.matrix[3][i].bomb(i * 100);
-	}
-}, 3000);
+		if(height - 51 - 22 > 0) {
+			linearGradientV(imf, 0, 53, 10, g, 0, 51, height - 51 - 22);
+		}
+		if(width - 75 - 111 > 0) {
+			linearGradientH(imf, 76,69, 9, g, 75, height - 9, width - 75 - 111);
+		}
+		if(width - 334 - 255 > 0) {
+			linearGradientH(imf, 335, 0, 10, g, 334, 0, width - 334 - 255);
+		}
+		if(height - 51 - 22 > 0) {
+			linearGradientV(imf, 179, 53, 11, g, width - 11, 51, height - 51 - 22);
+		}
 
-setTimeout(()=>{
-	field.startScan();
-}, 4000);
+		//g.fillStyle = "#f00";
+		//g.fillRect(0, 0, width, height);
+		//g.clearRect(10, 10, w, h);
+
+		element.appendChild(canvas);
+	}
+})();
+

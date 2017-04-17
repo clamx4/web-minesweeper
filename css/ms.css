@@ -1,0 +1,32 @@
+html,body {
+	background: #000;
+	margin: 0; padding: 0;
+	user-select: none;
+	-webkit-user-select: none;
+}
+div.main {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+}
+
+div.toolbar{
+	position: absolute;
+	left: 100%;
+	bottom: 0px;
+	padding-left: 15px;
+}
+div.toolbar>button {
+	box-shadow: 0 0 8px 2px #ddd;
+	margin-bottom: 4px;
+	width: 64px;
+	height: 24px;
+	font-family: 'Consolas';
+	font-size: 12px;
+	padding: 0px;
+	transition: all 0.2s ease;
+}
+div.toolbar>button:hover {
+	box-shadow: 0 0 20px 2px #def;
+}
