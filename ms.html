@@ -13,6 +13,15 @@
 			<button id="settings">Settings</button>
 			<button id="exit">Exit</button>
 		</div>
+		<div class="dialog" id="dialog-setting">
+			<canvas id="blur-bg"></canvas>
+			<div style="position:absolute; z-index: 3;">
+				<label for="width">Width:</label><input type="number" id="width" max="30" min="8" /><br>
+				<label for="height">Height:</label><input type="number" id="height" max="24" min="8" /><br>
+				<label for="mines">Mine Count:</label><input type="number" id="mines" max="666" min="10" /><br>
+			</div>
+			<button type="button" id="settings-ok">Apply</button>
+		</div>
 	</div>
 	<div style="display: none;">
 		<img id="im_border" src="img/border.png" />
@@ -34,7 +43,8 @@
 		window.mscfg = {
 			exit: document.querySelector('#exit'),
 			settings: document.querySelector('#settings'),
-			restart: document.querySelector('#restart')
+			restart: document.querySelector('#restart'),
+			settingOk: document.querySelector('#settings-ok')
 		};
 	</script>
 	<script src="js/ms-logic.js"></script>

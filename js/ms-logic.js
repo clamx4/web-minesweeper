@@ -16,15 +16,6 @@
 	createBorder('div.main');
 	var game = new MSGame(w, h, mines, field);
 	
-	cfg.exit.addEventListener('click', function() {
-		if(confirm('Tired of Mine Swepper?')) {
-			return location.href = 'about:blank';
-		}
-	});
-	cfg.settings.addEventListener('click', function() {
-		var w = 30, h = 16, mineCnt = 99;
-		location.href = location.origin + location.pathname + '?w='+w+'&h='+h+'&mines='+mineCnt;
-	});
 	cfg.restart.addEventListener('click', function() {
 		game.restart();
 	});
@@ -32,6 +23,8 @@
 	function MSGame(w, h, totalMines, field) {
 		var stopped = false;
 		var uncoveredCnt = 0;
+		var notifyId = null;
+
 		field.onReady(function() {
 			reset();
 			// createDialog('#field-canvas', '');
@@ -113,7 +106,7 @@
 					}
 				}
 			}
-			setTimeout(function() {
+			notifyId = setTimeout(function() {
 				if(stopped) {
 					alert('You lose!');
 				}
@@ -135,7 +128,7 @@
 					}
 				}
 			}
-			setTimeout(function() {
+			notifyId = setTimeout(function() {
 				if(stopped) {
 					alert('You win!');
 				}
@@ -214,10 +207,53 @@
 			field.setMineCnt(0, totalMines);
 			stopped = false;
 			uncoveredCnt = 0;
+			if(notifyId) {
+				clearInterval(notifyId);
+				notifyId = null;
+			}
 		}
 		Object.defineProperty(this, 'reset', {value : reset});
 	}
 	MSGame.prototype.restart = function() {
 		this.reset();
 	};
+
+	cfg.exit.addEventListener('click', function() {
+		if(confirm('Tired of Mine Swepper?')) {
+			return location.href = 'about:blank';
+		}
+	});
+
+	cfg.settings.addEventListener('click', function() {
+		var dialog = document.querySelector('div#dialog-setting');
+		var src = document.querySelector('#field-canvas');
+		if(dialog.style.opacity != 1) {
+			dialog.style.opacity = 1;
+			dialog.style['pointer-events'] = 'auto';
+			src.style['pointer-events'] = 'none';
+		} else {
+			dialog.style.opacity = 0;
+			dialog.style['pointer-events'] = 'none';
+			src.style['pointer-events'] = 'auto';
+		}
+		document.querySelector('#width').value = w;
+		document.querySelector('#height').value = h;
+		document.querySelector('#mines').value = mines;
+
+		var canvas = document.querySelector('#blur-bg');
+		
+		canvas.width = 320; canvas.height = 240;
+		canvas.getContext('2d').drawImage(src, (src.width - 320) / 2, (src.height - 240) / 2, 320, 240, 0, 0, 320, 240);
+	});
+	cfg.settingOk.addEventListener('click', function(){
+		var w = parseInt(document.querySelector('#width').value);
+		var h = parseInt(document.querySelector('#height').value);
+		var mines = parseInt(document.querySelector('#mines').value);
+		location.href = location.origin + location.pathname + '?w='+w+'&h='+h+'&mines='+mines;
+	});
+
+	document.addEventListener('contextmenu', function(e) {
+		e.preventDefault();
+		e.stopPropagation();
+	});
 })(window.mscfg);

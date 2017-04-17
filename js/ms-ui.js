@@ -552,21 +552,5 @@
 
 		element.appendChild(canvas);
 	};
-
-	window.createDialog = function(overcanvas, html){
-		console.log('call');
-		
-		if(typeof overcanvas === 'string') {
-			overcanvas = $(overcanvas);
-		}
-		var canvas = document.createElement('canvas');
-		canvas.width = overcanvas.offsetWidth;
-		canvas.height = overcanvas.offsetHeight;
-		canvas.style.cssText = 'position:absolute; left:' + overcanvas.offsetLeft + 'px; top: ' + overcanvas.offsetTop + 'px; z-index: 9';
-		canvas.style.clip = 'rect(100px 100px 100px 100px)'
-		canvas.getContext('2d').drawImage(overcanvas, 0, 0);
-		overcanvas.parentElement.appendChild(canvas);
-		
-	};
 })();
 
