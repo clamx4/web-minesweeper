@@ -417,7 +417,7 @@
 						}
 					}
 					// flag
-					if(e.flagged) {
+					if(e.flagged && e.shineTime <= 0) {
 						g.subImage(imgs.full, 801, 1121, 36, 36, targetX, targetY);
 					}
 					// bomb animation
@@ -550,11 +550,23 @@
 			linearGradientV(imf, 179, 53, 11, g, width - 11, 51, height - 51 - 22);
 		}
 
-		//g.fillStyle = "#f00";
-		//g.fillRect(0, 0, width, height);
-		//g.clearRect(10, 10, w, h);
-
 		element.appendChild(canvas);
-	}
+	};
+
+	window.createDialog = function(overcanvas, html){
+		console.log('call');
+		
+		if(typeof overcanvas === 'string') {
+			overcanvas = $(overcanvas);
+		}
+		var canvas = document.createElement('canvas');
+		canvas.width = overcanvas.offsetWidth;
+		canvas.height = overcanvas.offsetHeight;
+		canvas.style.cssText = 'position:absolute; left:' + overcanvas.offsetLeft + 'px; top: ' + overcanvas.offsetTop + 'px; z-index: 9';
+		canvas.style.clip = 'rect(100px 100px 100px 100px)'
+		canvas.getContext('2d').drawImage(overcanvas, 0, 0);
+		overcanvas.parentElement.appendChild(canvas);
+		
+	};
 })();
 
