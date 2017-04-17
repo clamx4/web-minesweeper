@@ -34,7 +34,7 @@
 		var uncoveredCnt = 0;
 		field.onReady(function() {
 			reset();
-			createDialog('#field-canvas', '');
+			// createDialog('#field-canvas', '');
 		});
 		field.onRight(function(center) {
 			if(stopped) return;
