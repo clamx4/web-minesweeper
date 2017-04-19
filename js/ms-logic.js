@@ -15,7 +15,7 @@
 	var field = createField(w, h, '#field-canvas');
 	createBorder('div.main');
 	var game = new MSGame(w, h, mines, field);
-	
+
 	cfg.restart.addEventListener('click', function() {
 		game.restart();
 	});
@@ -30,7 +30,7 @@
 			// createDialog('#field-canvas', '');
 		});
 		field.onRight(function(center) {
-			if(stopped) return;
+			if(stopped || !center) return;
 			if(!center.covered) {
 				return;
 			}
@@ -43,7 +43,7 @@
 			}
 		});
 		field.onLeft(function(cell, points) {
-			if(stopped || cell.flagged) return;
+			if(stopped || !cell || cell.flagged) return;
 			if(points.length > 1) {
 				if(cell.covered) return;
 				if(getAdj(cell).filter(function(e){return e.flagged;}).length === cell.content){
@@ -108,7 +108,7 @@
 			}
 			notifyId = setTimeout(function() {
 				if(stopped) {
-					alert('You lose!');
+					showFailedDialog();
 				}
 			}, maxDist + 2100);
 			function dist(e1, e2) {
@@ -130,7 +130,7 @@
 			}
 			notifyId = setTimeout(function() {
 				if(stopped) {
-					alert('You win!');
+					showWinDialog();
 				}
 			}, 2000 + h * 200);
 		}
@@ -172,7 +172,7 @@
 			for (var row = 0; row < h; row++) {
 				for (var col = 0; col < w; col++) {
 					if(Math.abs(row - startRow) <= 1 && Math.abs(col - startCol) <= 1) continue;
-					cells.push(field.matrix[row][col]); 
+					cells.push(field.matrix[row][col]);
 				}
 			}
 			// suffle
@@ -223,34 +223,88 @@
 			return location.href = 'about:blank';
 		}
 	});
+    function showDialog(sourceContent, setter) {
+        var dialog = document.querySelector('div#dialog');
+        var contentDiv = document.querySelector('div#dialog-content');
+        var content = document.querySelector(sourceContent);
+        contentDiv.innerHTML = content.innerHTML.replace(/(<!--)|(-->)/g, "");
+
+        dialog.style.opacity = 1;
+        dialog.style['pointer-events'] = 'auto';
+        var src = document.querySelector('#field-canvas');
+        src.style['pointer-events'] = 'none';
+
+        var canvas = document.querySelector('#blur-bg');
+        canvas.width = 320; canvas.height = 240;
+        canvas.getContext('2d').drawImage(src, (src.width - 320) / 2, (src.height - 240) / 2 + 2, 320, 240, 0, 0, 320, 240);
+        if(typeof setter === 'function') setter(contentDiv);
+    }
+    function closeDialog() {
+        var src = document.querySelector('#field-canvas');
+        var dialog = document.querySelector('div#dialog');
+        dialog.style.opacity = 0;
+        dialog.style['pointer-events'] = 'none';
+        src.style['pointer-events'] = 'auto';
+    }
+    function isDialogShowing() {
+        return document.querySelector('div#dialog').style.opacity == 1;
+    }
 
 	cfg.settings.addEventListener('click', function() {
-		var dialog = document.querySelector('div#dialog-setting');
-		var src = document.querySelector('#field-canvas');
-		if(dialog.style.opacity != 1) {
-			dialog.style.opacity = 1;
-			dialog.style['pointer-events'] = 'auto';
-			src.style['pointer-events'] = 'none';
-		} else {
-			dialog.style.opacity = 0;
-			dialog.style['pointer-events'] = 'none';
-			src.style['pointer-events'] = 'auto';
-		}
-		document.querySelector('#width').value = w;
-		document.querySelector('#height').value = h;
-		document.querySelector('#mines').value = mines;
+        if (isDialogShowing()) {
+            closeDialog();
+        } else {
+            showDialog('div#dialog-content-settings', function(element){
+                element.querySelector('#width').value = w;
+                element.querySelector('#height').value = h;
+                element.querySelector('#mines').value = mines;
 
-		var canvas = document.querySelector('#blur-bg');
-		
-		canvas.width = 320; canvas.height = 240;
-		canvas.getContext('2d').drawImage(src, (src.width - 320) / 2, (src.height - 240) / 2, 320, 240, 0, 0, 320, 240);
+                element.querySelector('#settings-ok').addEventListener('click', function(){
+                    var w = parseInt(document.querySelector('#width').value);
+                    var h = parseInt(document.querySelector('#height').value);
+                    var mines = parseInt(document.querySelector('#mines').value);
+                    close();
+                    setTimeout(function(){
+                        location.href = location.origin + location.pathname + '?w=' + w + '&h=' + h + '&mines=' + mines;
+                    }, 200);
+                });
+            });
+        }
 	});
-	cfg.settingOk.addEventListener('click', function(){
-		var w = parseInt(document.querySelector('#width').value);
-		var h = parseInt(document.querySelector('#height').value);
-		var mines = parseInt(document.querySelector('#mines').value);
-		location.href = location.origin + location.pathname + '?w='+w+'&h='+h+'&mines='+mines;
-	});
+
+    function showWinDialog() {
+        if (isDialogShowing()) {
+            closeDialog();
+        }
+        showDialog('div#dialog-content-result', function(element) {
+            var text = [
+                'Congratulations! You Win!',
+                'You spent ' + field.getCurrentTime() + 's on the game',
+                'it\'s amazing!'
+            ];
+            element.querySelector('#result-text').innerHTML = text.join('\n');
+            element.querySelector('#result-close').addEventListener('click', function(element) {
+                closeDialog();
+            });
+        });
+    }
+
+    function showFailedDialog() {
+        if (isDialogShowing()) {
+            closeDialog();
+        }
+        showDialog('div#dialog-content-result', function(element) {
+            var text = [
+                'Ooh sorry! You failed...',
+                'You spent ' + field.getCurrentTime() + 's on the game',
+                'What a pity!'
+            ];
+            element.querySelector('#result-text').innerHTML = text.join('\n');
+            element.querySelector('#result-close').addEventListener('click', function(element) {
+                closeDialog();
+            });
+        });
+    }
 
 	document.addEventListener('contextmenu', function(e) {
 		e.preventDefault();

@@ -63,7 +63,7 @@
 		// read only properties
 		Object.defineProperty(this, 'w', {value: w});
 		Object.defineProperty(this, 'h', {value: h});
-		
+
 		this.mines = 0;
 		this.startTime = -1;
 		this.scanTime = 0;
@@ -174,7 +174,7 @@
 			clearDown();
 		});
 
-		// no context menu 
+		// no context menu
 		canvas.addEventListener('contextmenu', function(e) {
 			e.preventDefault();
 			e.stopPropagation();
@@ -220,6 +220,9 @@
 	Field.prototype.dispose = function() {
 		this.disposed = true;
 	};
+    Field.prototype.getCurrentTime = function() {
+        return parseInt(((this.pauseTime || Date.now()) - this.startTime) / 1000);
+    };
 
 	function newField(canvasSelector, imgs, w, h) {
 		var totalScanTime = h * 200;
@@ -229,7 +232,7 @@
 		var width = w * cellSize + borderW, height = h * cellSize + borderH;
 		var field = new Field(w, h, canvas);
 		var drawStatus;
-		
+
 		canvas.setAttribute('width', width);
 		canvas.setAttribute('height', height);
 		bg.setAttribute('width', width);
@@ -334,7 +337,7 @@
 		function draw() {
 			// draw bg
 			g.drawImage(bg, 0, 0);
-			
+
 			// draw status
 			var tmEllipsed = 999;
 			if(field.startTime > 0) {
@@ -380,7 +383,7 @@
 							g.subImage(imgs.full, pos_x, pos_y, 36, 36, targetX, targetY);
 							g.globalAlpha = 1;
 						}
-						
+
 					} else {
 						// if pushed, do nothing
 						if(e.pushed) {
@@ -405,7 +408,7 @@
 						if(e.row === field.hoverRow && e.col == field.hoverCol) {
 							g.subImage(imgs.full, 881, 1121, 36, 36, targetX, targetY);
 						}
-						
+
 						// fade of shining animation
 						if(e.shineTime > 0 && currTm - e.shineTime > 0) {
 							g.subImage(imgs.full, 1880, 1120, 36, 36, targetX, targetY);
@@ -522,8 +525,8 @@
 				gdest.fillRect(destx + i, desty, 1, desth);
 			}
 		}
-		
-		
+
+
 		var w = element.offsetWidth, h = element.offsetHeight;
 		var width = w + 21, height = h + 19;
 		var canvas = document.createElement('canvas');
@@ -553,4 +556,3 @@
 		element.appendChild(canvas);
 	};
 })();
-
